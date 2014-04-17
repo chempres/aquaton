@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Vert.x Gradle Template
 
 Template project for creating a Vert.x module with a Gradle build.
@@ -11,7 +10,3 @@ messages with `pong!`.
 This template also shows you how to write tests in Java, Groovy, Ruby and Python
 
 See the [build script](build.gradle) for the list of useful tasks
-=======
-aquaton
-=======
->>>>>>> 2af40dc7ae22337491738459430fb244a9c85a0b
