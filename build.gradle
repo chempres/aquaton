@@ -54,7 +54,6 @@ dependencies {
   */
   
   // If you're creating Groovy compiled verticles you may need the following dependencies
-  compile "io.vertx:mod-mongo-persistor:2.1.0"
   provided "org.codehaus.groovy:groovy-all:$groovyVersion"
   provided "io.vertx:lang-groovy:$groovyLangModVersion@jar"
 

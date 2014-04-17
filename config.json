@@ -11,6 +11,7 @@
     "webServer":{
     "web_root": "webroot",
     "host": "localhost",
+    "port":80,
     "bridge": true,
     "inbound_permitted": [{"address":"aquaton.login"},{"address_re":"aquaton\\.user\\..+", "requires_auth" : true}],
     "outbound_permitted": [{"address_re":"aquaton\\.user\\..+"}]
