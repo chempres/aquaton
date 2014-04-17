@@ -1,0 +1,20 @@
+{
+
+  // Main verticle
+  "main":"apps.js",
+
+
+
+  // If your module is going to be registered in the Vert.x module registry you will also need the following
+  // mandatory fields
+  "description":"Aquaton server",
+  "licenses": ["The Apache Software License Version 2.0"],
+  "author": "Ayman Musmar",
+  // Optional fields
+  "developers": ["Ayman Musmar"],
+  "keywords": ["remote", "sprinkles", "water", "pump", "agriculture"],
+  "homepage": "aquaton.net",
+
+  "auto-redeploy": true
+
+}

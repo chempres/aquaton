@@ -1,0 +1,26 @@
+{
+    
+    "mongoPersistor" : {
+        "address": "vertx.mongopersistor",
+        "host": "localhost",
+        "port": 27017,
+        "pool_size": 15,
+        "db_name": "vertx"
+    },
+    
+    "webServer":{
+    "web_root": "webroot",
+    "host": "localhost",
+    "bridge": true,
+    "inbound_permitted": [{"address":"aquaton.login"},{"address_re":"aquaton\\.user\\..+", "requires_auth" : true}],
+    "outbound_permitted": [{"address_re":"aquaton\\.user\\..+"}]
+    },
+    
+   "authMgr" :{
+    "address": "vertx.basicauthmanager",
+    "user_collection": "users",
+    "persistor_address": "vertx.mongopersistor",
+    "session_timeout": 1800000
+}  
+    
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <script src="//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/vertx/2.0.0/vertxbus.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+  
+<script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+<script>
+
+function ConvertFormToJSON(form){
+    var array = $(form).serializeArray();
+    var json = {};
+    
+    $.each(array, function() {
+    	if(this.name == 'coordinates'){
+    		var coordinates = this.value.split(';');
+    		json[this.name]=new Array(coordinates.length);
+    		for(var i=0;i<coordinates.length;i++){
+    			json[this.name][i]=new Array(2);
+    			var longlat = coordinates[i].split(',');
+    			json[this.name][i][0]=longlat[0];
+    			json[this.name][i][1]=longlat[1];
+    		}
+    	}else{
+    		json[this.name] = this.value || '';
+    	}
+        
+    });
+    
+    return json;
+}
+
+var poly;
+function initialize(coordinates)
+{
+	poly=null;
+    var map = new google.maps.Map(document.getElementById('googleMap'), { center: new google.maps.LatLng(21.17, -86.66), zoom: 9, mapTypeId: google.maps.MapTypeId.HYBRID, scaleControl: true });
+    $.each(coordinates, function(i,val){
+    	var path=new Array();
+    	$.each(val, function(j,v){
+    		var latlng = new google.maps.LatLng(v[1], v[0]);
+    		path.push(latlng);
+    	});
+    	var poly = new google.maps.Polygon({ map: map, path: path, strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
+    	
+    });
+    poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
+    google.maps.event.addListener(map, 'click', function (clickEvent) {
+        var markerIndex = poly.getPath().length;
+        var isFirstMarker = markerIndex === 0;
+        var marker = new google.maps.Marker({ map: map, position: clickEvent.latLng, draggable: true });
+        if (isFirstMarker) {
+            google.maps.event.addListener(marker, 'click', function () {
+                var path = poly.getPath();
+                path.push(path.getAt(0));
+                poly.setMap(null);
+                poly = new google.maps.Polygon({ map: map, path: path, strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
+                $('#coordinates').val('');
+                poly.getPath().forEach(function(val,i){
+                	$('#coordinates').val($('#coordinates').val()+val.lng()+','+val.lat());
+                	if(i!=path.length-1){
+                		$('#coordinates').val($('#coordinates').val()+';');
+                	}
+                });
+                poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
+            });
+        }
+        google.maps.event.addListener(marker, 'drag', function (dragEvent) {
+            poly.getPath().setAt(markerIndex, dragEvent.latLng);
+            $('#coordinates').val('');
+            poly.getPath().forEach(function(val,i){
+            	$('#coordinates').val($('#coordinates').val()+val.lng()+','+val.lat());
+            	if(i!=path.length-1){
+            		$('#coordinates').val($('#coordinates').val()+';');
+            	}
+            });
+        });
+        poly.getPath().push(clickEvent.latLng);
+    });
+	
+}
+
+function resetForm($form) {
+    $form.find('input:text, input:password, input:file, select, textarea').val('');
+    $form.find('input:radio, input:checkbox')
+         .removeAttr('checked').removeAttr('selected');
+}
+
+
+$(function() {
+	
+    var eb = new vertx.EventBus(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/eventbus');
+
+    eb.onopen = function() {
+      
+      $("#login").click(function(){
+    	  var json = ConvertFormToJSON( $("form#loginForm"));
+    	  eb.send("aquaton.login", JSON.stringify(json), function (reply) {
+    		    if (reply.status === 'ok') {
+    		    	$('#logoutDiv').show();
+    	    		  $('#loginDiv').hide();
+    	    		eb.sessionID=reply.sessionID;
+    	    		eb.username=json.username;
+    		        eb.registerHandler('aquaton.user.'+reply.sessionID, function(message) {
+    		        	var parsed = $.parseJSON(message);
+    		            if($('#Content table').length<=0){
+    		            	$('#Content').append('<table></table>');
+    		            	$('#Content table').append('<tbody></tbody>');
+    		            	$('#Content table tbody').append('<tr></tr>');
+    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th>');
+    		            }
+    		            
+    		            $("#Content table tbody tr").each(function(){
+    		            	var $tds = $(this).find('td');
+    		                var  parcelName = $tds.eq(0).text();
+    		               if(parcelName==parsed.parcel){
+    		            	   $tds.eq(2).text(parsed.humidity+', '+parsed.temperature);
+    		               }
+    		            });	
+    		            
+    		          }); 
+    		        eb.send("aquaton.user.parcel.get",  JSON.stringify({username:eb.username}),function(message){
+    		        	var parsed = $.parseJSON(message);
+    		        	if($('#Content table').length<=0){
+    		            	$('#Content').append('<table></table>');
+    		            	$('#Content table').append('<tbody></tbody>');
+    		            	$('#Content table tbody').append('<tr></tr>');
+    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th>');
+    		            }
+    		        	var coordArray=new Array();
+    		        	$.each(parsed.result.parcels, function(i,val){
+    		        		coordArray.push(val.location.coordinates[0]);
+    		        		$("#Content table tbody > tr:last").after('<tr><td>'+val.name+'</td><td>'+val.location.coordinates+'</td><td></td></tr>');
+    		        	});
+    		        	
+    		        	initialize(coordArray);
+    		        	
+    		        	
+    		        });
+    		      } else {
+    		        alert('invalid login');
+    		      }
+      });
+      });
+      
+      $("#logout").click(function(){
+    	  eb.send("aquaton.user."+eb.sessionID+".logout",{},function(){
+    		  alert('You have logged out');
+    		  $('#Content table').remove();
+    		  $('#logoutDiv').hide();
+    		  $('#loginDiv').show();
+    		  
+    	  });
+      });
+      
+      
+      $("#create").click(function(){
+    	  var json = ConvertFormToJSON($("form#parcelForm"));
+    	  json.username=eb.username;
+    	  eb.send("aquaton.user.parcel.create",JSON.stringify(json),function(message){
+    		  var parsed = $.parseJSON(message);
+    		  $("#Content table tbody > tr:last").after('<tr><td>'+parsed.created.name+'</td><td>'+parsed.created.coordinates+'</td><td></td></tr>');
+    		  resetForm($("form#parcelForm"));
+    	  });
+      });
+    
+    };
+    
+    
+});
+</script>
+
+</head>
+<div id="loginDiv">
+<form id="loginForm" name="login" method="POST">
+<label for="username" >Username</label><input id="username" name="username" type="text" />
+<br>
+<label for="password" >Password</label><input id="password" name="password" type="password" />
+<br>
+<button type ="button" id="login" value="Login" >Login</button>
+</form>
+</div>
+<div id="logoutDiv" style="display:none;">
+<button type ="button" id="logout" value="Logout" >Logout</button>
+<form id="parcelForm" name="login" method="POST">
+<label for="name" >Name</label><input id="name" name="name" type="text" />
+<br>
+<label for="coordinates" >Location</label><input id="coordinates" name="coordinates" type="text" />
+<br>
+<button type ="button" id="create" value="Create" >Create</button>
+</form>
+<div id="Content" >
+</div>
+<div id="googleMap" style="width:500px;height:380px;"></div>
+</div>
+
+</html>
