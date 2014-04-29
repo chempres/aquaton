@@ -6,8 +6,17 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   
 <script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+<style type="text/css">
+  table{
+    border-collapse: collapse;
+    border: 1px solid black;
+  }
+  table td,th{
+    border: 1px solid black;
+  }
+</style>
 <script>
-
+var coordArray;
 function ConvertFormToJSON(form){
     var array = $(form).serializeArray();
     var json = {};
@@ -38,7 +47,7 @@ function initialize(coordinates)
     var map = new google.maps.Map(document.getElementById('googleMap'), { center: new google.maps.LatLng(21.17, -86.66), zoom: 9, mapTypeId: google.maps.MapTypeId.HYBRID, scaleControl: true });
     $.each(coordinates, function(i,val){
     	var path=new Array();
-    	$.each(val, function(j,v){
+    	$.each(val.location, function(j,v){
     		var latlng = new google.maps.LatLng(v[1], v[0]);
     		path.push(latlng);
     	});
@@ -88,7 +97,34 @@ function resetForm($form) {
 }
 
 
+function parcelDeleted(name){
+    $("#Content table tbody tr").each(function(){
+        var $tds = $(this).find('td');
+        var  parcelName = $tds.eq(0).text();
+       if(parcelName==name){    	   
+    	   for(var i = coordArray.length - 1; i >= 0; i--) {
+    		    if(coordArray[i].name == parcelName) {
+    		    	coordArray.splice(i, 1);
+    		    }
+    		}
+           $(this).remove();
+           initialize(coordArray);
+       }
+    }); 
+}
 $(function() {
+	
+	var parcelCreated =  function(parcel){
+		coordArray.push({name:parcel.name, location:parcel.location.coordinates[0]});
+	    $("#Content table tbody > tr:last").after('<tr><td>'+parcel.name+'</td><td style="font-size:10px">'+parcel.location.coordinates+'</td><td style="font-size:10px"></td><td></td></tr>');
+	    $('<button>').html('Delete').appendTo($("#Content table tbody > tr:last >td:last"))
+	    .click(function(){
+	        var json={};
+	        json.username=eb.username;
+	        json.name=parcel.name;
+	        eb.send("aquaton.user.parcel.delete",JSON.stringify(json));
+	    });
+	}
 	
     var eb = new vertx.EventBus(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/eventbus');
 
@@ -102,13 +138,13 @@ $(function() {
     	    		  $('#loginDiv').hide();
     	    		eb.sessionID=reply.sessionID;
     	    		eb.username=json.username;
-    		        eb.registerHandler('aquaton.user.'+reply.sessionID, function(message) {
+    		        eb.registerHandler('aquaton.user.'+reply.sessionID+'.parcel.data', function(message) {
     		        	var parsed = $.parseJSON(message);
     		            if($('#Content table').length<=0){
-    		            	$('#Content').append('<table></table>');
+    		            	$('#Content').append('<table style="border: 1px solid black;"></table>');
     		            	$('#Content table').append('<tbody></tbody>');
     		            	$('#Content table tbody').append('<tr></tr>');
-    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th>');
+    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th><th>Actions</th>');
     		            }
     		            
     		            $("#Content table tbody tr").each(function(){
@@ -120,18 +156,32 @@ $(function() {
     		            });	
     		            
     		          }); 
-    		        eb.send("aquaton.user.parcel.get",  JSON.stringify({username:eb.username}),function(message){
+    		        eb.registerHandler('aquaton.user.'+eb.sessionID+'.parcel', function(message) {
+    		            var parsed = $.parseJSON(message);
+    		            switch (parsed.event) {
+    		            case 'CREATE':   parcelCreated(parsed.parcel);  resetForm($("form#parcelForm"));break;
+    		            case 'DELETE': parcelDeleted(parsed.parcel); break;
+    		          }
+    		        });
+    		        eb.send("aquaton.user.parcel.list",  JSON.stringify({username:eb.username}),function(message){
     		        	var parsed = $.parseJSON(message);
     		        	if($('#Content table').length<=0){
-    		            	$('#Content').append('<table></table>');
+    		            	$('#Content').append('<table style="border: 1px solid black;"></table>');
     		            	$('#Content table').append('<tbody></tbody>');
     		            	$('#Content table tbody').append('<tr></tr>');
-    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th>');
+    		            	$('#Content table tbody tr').append('<th>Parcel name</th><th>Location</th><th>Last parameters</th><th>Actions</th>');
     		            }
-    		        	var coordArray=new Array();
+    		        	coordArray=new Array();
     		        	$.each(parsed.result.parcels, function(i,val){
-    		        		coordArray.push(val.location.coordinates[0]);
-    		        		$("#Content table tbody > tr:last").after('<tr><td>'+val.name+'</td><td>'+val.location.coordinates+'</td><td></td></tr>');
+    		        		coordArray.push({name:val.name, location:val.location.coordinates[0]});
+    		        		$("#Content table tbody > tr:last").after('<tr><td>'+val.name+'</td><td style="font-size:10px">'+val.location.coordinates+'</td><td style="font-size:10px"></td><td></td></tr>');
+    		        		$('<button>').html('Delete').appendTo($("#Content table tbody > tr:last >td:last"))
+    		        		.click(function(){
+    		        			var json={};
+    		        			json.username=eb.username;
+    		        			json.name=val.name;
+    		        			eb.send("aquaton.user.parcel.delete",JSON.stringify(json));
+    		        		});
     		        	});
     		        	
     		        	initialize(coordArray);
@@ -159,16 +209,18 @@ $(function() {
     	  var json = ConvertFormToJSON($("form#parcelForm"));
     	  json.username=eb.username;
     	  eb.send("aquaton.user.parcel.create",JSON.stringify(json),function(message){
-    		  var parsed = $.parseJSON(message);
-    		  $("#Content table tbody > tr:last").after('<tr><td>'+parsed.created.name+'</td><td>'+parsed.created.coordinates+'</td><td></td></tr>');
-    		  resetForm($("form#parcelForm"));
+    		 
     	  });
       });
+      
+     
     
     };
     
     
 });
+
+
 </script>
 
 </head>
@@ -190,9 +242,10 @@ $(function() {
 <br>
 <button type ="button" id="create" value="Create" >Create</button>
 </form>
-<div id="Content" >
-</div>
 <div id="googleMap" style="width:500px;height:380px;"></div>
 </div>
+<div id="Content" >
+</div>
+
 
 </html>

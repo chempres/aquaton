@@ -42,7 +42,8 @@ install - install any jars produced to the local Maven repository (.m2)
 
  */
 
-
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 dependencies {
   /*

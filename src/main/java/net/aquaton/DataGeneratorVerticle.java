@@ -12,55 +12,30 @@ public class DataGeneratorVerticle extends Verticle {
 
 	@Override
 	public void start() {
-		vertx.setPeriodic(10000, new Handler<Long>() {
+		vertx.setPeriodic(10000, (timeEvent) -> {
+			JsonObject find = new JsonObject();
+			find.putString("action", "find");
+			find.putString("collection", "users");
+			find.putObject("matcher", new JsonObject().putString("username", "john"));
+			Handler<Message<JsonObject>> searchResponseHandler = (event) -> {
+				JsonArray results = event.body().getArray("results");
+				for (int i = 0; i < results.size(); i++) {
+					JsonObject user = results.get(i);
+					JsonArray parcels = user.getArray("parcels");
+					if (parcels != null) {
+						for (int j = 0; j < parcels.size(); j++) {
+							JsonObject parcel = parcels.get(j);
+							vertx.eventBus().send("aquaton.data",
+									new Data(user.getString("username"), parcel.getString("name"), "HUMIDIY-" + counter,
+											"TEMP-" + counter).toString());
+							counter++;
+						}
+					}
 
-			@Override
-			public void handle(Long event) {
-				JsonObject find = new JsonObject();
-				find.putString("action", "find");
-				find.putString("collection", "users");
-				find.putObject("matcher",
-						new JsonObject().putString("username", "john"));
-				container.logger().debug("WEWEWEWEEWEE");
-				vertx.eventBus().send("vertx.mongopersistor", find,
-						new Handler<Message<JsonObject>>() {
+				}
 
-							@Override
-							public void handle(Message<JsonObject> event) {
-								JsonArray results = event.body().getArray(
-										"results");
-								for (int i = 0; i < results.size(); i++) {
-									JsonObject user = results.get(i);
-									JsonArray parcels = user
-											.getArray("parcels");
-									if (parcels != null) {
-										for (int j = 0; j < parcels.size(); j++) {
-											JsonObject parcel = parcels.get(j);
-											System.out.println("WTF");
-											vertx.eventBus()
-													.send("aquaton.data",
-															new Data(
-																	user.getString("username"),
-																	parcel.getString("name"),
-																	"HUMIDIY-"
-																			+ counter,
-																	"TEMP-"
-																			+ counter)
-																	.toString());
-											System.out.println("send: "
-													+ counter);
-											counter++;
-
-										}
-									}
-
-								}
-
-							}
-						});
-
-			}
-
+			};
+			vertx.eventBus().send("vertx.mongopersistor", find, searchResponseHandler);
 		});
 
 	}
