@@ -9,16 +9,18 @@ public class DataReceiverVerticle extends UserVerticle {
 	public void start() {
 
 		vertx.eventBus().registerHandler(
-				"aquaton.data",
-				(Message<String> dataRequest) -> {
-					final Data data = Data.fromString(dataRequest.body());
+				"aquaton.parcel.parameters",
+				(Message<JsonObject> dataRequest) -> {
 					JsonObject criteria = new JsonObject();
 					criteria.putObject("parcels", new JsonObject()
-							.putObject("$elemMatch", new JsonObject().putString("name", data.getParcel())));
+							.putObject("$elemMatch", new JsonObject().putString("name", dataRequest.body().getString("parcel"))));
 					JsonObject newObject = new JsonObject();
-					newObject.putObject("$push", new JsonObject()
-							.putObject("parcels.$.parameters", new JsonObject().putString("temperature", data.getTemperature())
-									.putString("humidity", data.getHumidity())));
+					newObject.putObject(
+							"$push",
+							new JsonObject()
+									.putObject("parcels.$.parameters",
+											new JsonObject().putString("temperature", dataRequest.body().getString("temperature"))
+													.putString("humidity", dataRequest.body().getString("humidity"))));
 					JsonObject json = new JsonObject()
 							.putString("collection", "users")
 							.putString("action", "update")
@@ -26,7 +28,7 @@ public class DataReceiverVerticle extends UserVerticle {
 							.putBoolean("upsert", true)
 							.putObject("objNew", newObject);
 					vertx.eventBus().send("vertx.mongopersistor", json);
-					sendToUser(dataRequest.body(), "parcel.data", data.getUsername());
+					sendToUser(dataRequest.body(), "parcel.parameters", dataRequest.body().getString("username"));
 				});
 	}
 }

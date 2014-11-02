@@ -25,9 +25,12 @@ public class DataGeneratorVerticle extends Verticle {
 					if (parcels != null) {
 						for (int j = 0; j < parcels.size(); j++) {
 							JsonObject parcel = parcels.get(j);
-							vertx.eventBus().send("aquaton.data",
-									new Data(user.getString("username"), parcel.getString("name"), "HUMIDIY-" + counter,
-											"TEMP-" + counter).toString());
+							JsonObject parameters = new JsonObject()
+									.putString("username", user.getString("username"))
+									.putString("humidity", "HUMIDITY-" + counter)
+									.putString("temperature", "TEMP-" + counter)
+									.putString("parcel", parcel.getString("name"));
+							vertx.eventBus().send("aquaton.parcel.parameters", parameters);
 							counter++;
 						}
 					}

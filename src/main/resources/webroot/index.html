@@ -2,7 +2,7 @@
 <html>
  <head>
  <script src="//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/vertx/2.0.0/vertxbus.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/vertx/2.0.0/vertxbus.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   
 <script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
@@ -122,7 +122,7 @@ $(function() {
 	        var json={};
 	        json.username=eb.username;
 	        json.name=parcel.name;
-	        eb.send("aquaton.user.parcel.delete",JSON.stringify(json));
+	        eb.send("aquaton.parcel.delete",json);
 	    });
 	}
 	
@@ -132,14 +132,14 @@ $(function() {
       
       $("#login").click(function(){
     	  var json = ConvertFormToJSON( $("form#loginForm"));
-    	  eb.send("aquaton.login", JSON.stringify(json), function (reply) {
+    	  eb.send("aquaton.user.login", json, function (reply) {
     		    if (reply.status === 'ok') {
     		    	$('#logoutDiv').show();
     	    		  $('#loginDiv').hide();
     	    		eb.sessionID=reply.sessionID;
     	    		eb.username=json.username;
-    		        eb.registerHandler('aquaton.user.'+reply.sessionID+'.parcel.data', function(message) {
-    		        	var parsed = $.parseJSON(message);
+    		        eb.registerHandler('aquaton.user.'+reply.sessionID+'.parcel.parameters', function(message) {
+    		        	var parsed = message;
     		            if($('#Content table').length<=0){
     		            	$('#Content').append('<table style="border: 1px solid black;"></table>');
     		            	$('#Content table').append('<tbody></tbody>');
@@ -156,15 +156,15 @@ $(function() {
     		            });	
     		            
     		          }); 
-    		        eb.registerHandler('aquaton.user.'+eb.sessionID+'.parcel', function(message) {
-    		            var parsed = $.parseJSON(message);
+    		        eb.registerHandler('aquaton.user.'+eb.sessionID+'.parcel.event', function(message) {
+    		            var parsed = message;
     		            switch (parsed.event) {
     		            case 'CREATE':   parcelCreated(parsed.parcel);  resetForm($("form#parcelForm"));break;
     		            case 'DELETE': parcelDeleted(parsed.parcel); break;
     		          }
     		        });
-    		        eb.send("aquaton.user.parcel.list",  JSON.stringify({username:eb.username}),function(message){
-    		        	var parsed = $.parseJSON(message);
+    		        eb.send("aquaton.parcel.list",  {username:eb.username},function(message){
+    		        	var parsed = message;
     		        	if($('#Content table').length<=0){
     		            	$('#Content').append('<table style="border: 1px solid black;"></table>');
     		            	$('#Content table').append('<tbody></tbody>');
@@ -180,7 +180,7 @@ $(function() {
     		        			var json={};
     		        			json.username=eb.username;
     		        			json.name=val.name;
-    		        			eb.send("aquaton.user.parcel.delete",JSON.stringify(json));
+    		        			eb.send("aquaton.parcel.delete",json);
     		        		});
     		        	});
     		        	
@@ -195,7 +195,7 @@ $(function() {
       });
       
       $("#logout").click(function(){
-    	  eb.send("aquaton.user."+eb.sessionID+".logout",{},function(){
+    	  eb.send("aquaton.user.logout",{},function(){
     		  alert('You have logged out');
     		  $('#Content table').remove();
     		  $('#logoutDiv').hide();
@@ -208,7 +208,7 @@ $(function() {
       $("#create").click(function(){
     	  var json = ConvertFormToJSON($("form#parcelForm"));
     	  json.username=eb.username;
-    	  eb.send("aquaton.user.parcel.create",JSON.stringify(json),function(message){
+    	  eb.send("aquaton.parcel.create",json,function(message){
     		 
     	  });
       });

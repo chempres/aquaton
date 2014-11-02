@@ -11,11 +11,9 @@ public abstract class UserVerticle extends BusModBase {
 	}
 
 	protected <T> void sendToUser(T dataRequest, String path, String username) {
-		JsonObject criteria;
-		JsonObject json;
-		criteria = new JsonObject();
+		JsonObject criteria = new JsonObject();
 		criteria.putString("username", username);
-		json = new JsonObject()
+		JsonObject json = new JsonObject()
 				.putString("collection", "users")
 				.putString("action", "findone")
 				.putObject("matcher", criteria);

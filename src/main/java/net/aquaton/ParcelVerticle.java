@@ -9,9 +9,9 @@ public class ParcelVerticle extends UserVerticle {
 	@Override
 	public void start() {
 		super.start();
-		eb.registerHandler("aquaton.user.parcel.create",
-				(Message<String> createParcel) -> {
-					final JsonObject parcel = new JsonObject(createParcel.body());
+		eb.registerHandler("aquaton.parcel.create",
+				(Message<JsonObject> createParcel) -> {
+					final JsonObject parcel = createParcel.body();
 					JsonObject criteria = new JsonObject();
 					criteria.putString("username", parcel.getString("username"));
 					JsonArray coordinates = parcel.getArray("coordinates");
@@ -43,9 +43,9 @@ public class ParcelVerticle extends UserVerticle {
 							});
 				});
 
-		eb.registerHandler("aquaton.user.parcel.list",
-				(Message<String> getParcel) -> {
-					JsonObject parcel = new JsonObject(getParcel.body());
+		eb.registerHandler("aquaton.parcel.list",
+				(Message<JsonObject> getParcel) -> {
+					JsonObject parcel = getParcel.body();
 					JsonObject criteria = new JsonObject();
 					criteria.putString("username", parcel.getString("username"));
 					JsonObject json = new JsonObject()
@@ -54,13 +54,12 @@ public class ParcelVerticle extends UserVerticle {
 							.putObject("matcher", criteria);
 					eb.send("vertx.mongopersistor", json,
 							(Message<JsonObject> event) -> {
-								getParcel.reply(event.body().toString());
+								getParcel.reply(event.body());
 							});
 				});
-		eb.registerHandler(
-				"aquaton.user.parcel.delete",
-				(Message<String> deleteRequest) -> {
-					JsonObject parcel = new JsonObject(deleteRequest.body());
+		eb.registerHandler("aquaton.parcel.delete",
+				(Message<JsonObject> deleteRequest) -> {
+					JsonObject parcel = deleteRequest.body();
 					JsonObject criteria = new JsonObject();
 					criteria.putString("username",
 							parcel.getString("username"));
@@ -83,7 +82,7 @@ public class ParcelVerticle extends UserVerticle {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.putValue("parcel", parcel);
 		jsonObject.putString("event", eventType.toString());
-		sendToUser(jsonObject.toString(), "parcel", username);
+		sendToUser(jsonObject, "parcel.event", username);
 	}
 
 	public enum EventType {

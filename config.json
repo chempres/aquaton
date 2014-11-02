@@ -14,8 +14,8 @@
     "host": "localhost",
     "port":80,
     "bridge": true,
-    "inbound_permitted": [{"address":"aquaton.login"},{"address_re":"aquaton\\.user\\..+", "requires_auth" : true}],
-    "outbound_permitted": [{"address_re":"aquaton\\.user\\..+"}]
+    "inbound_permitted": [{"address":"aquaton.user.login"},{"address_re":"aquaton\\.user\\..+", "requires_auth" : true},{"address_re":"aquaton\\.parcel\\..+", "requires_auth" : true}],
+    "outbound_permitted": [{"address_re":"aquaton\\.user\\..+"},{"address_re":"aquaton\\.parcel\\..+"}]
     },
     
    "authMgr" :{
